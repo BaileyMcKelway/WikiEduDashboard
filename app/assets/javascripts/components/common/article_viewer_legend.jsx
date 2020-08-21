@@ -6,6 +6,7 @@ import UserUtils from '../../utils/user_utils.js';
 
 const ArticleViewerLegend = ({ article, users, colors, status, allUsers, failureMessage }) => {
   let userLinks;
+  users = users.filter(user => article.editors.includes(user.name) === true);
   if (users) {
     userLinks = users.map((user, i) => {
       const userLink = UserUtils.userTalkUrl(user.name, article.language, article.project);
