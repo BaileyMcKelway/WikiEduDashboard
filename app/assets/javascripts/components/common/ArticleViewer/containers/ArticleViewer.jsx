@@ -39,6 +39,7 @@ export class ArticleViewer extends React.Component {
       showBadArticleAlert: false,
       whocolorFailed: false,
       users: [],
+      ref: React.createRef(),
       refData: null,
     };
 
@@ -168,13 +169,11 @@ export class ArticleViewer extends React.Component {
       // WRITE FUNCTION FOR HIGHLIGHTING OTHER THEN REPLACE, SHOULD HAVE RUNTIME O(n)
       // const styledAuthorSpan = `<span title="${user.name}" class="editor-token token-editor-${user.userid} ${colorClass}`;
       const authorSpanMatcher = new RegExp(`<span class="editor-token token-editor-${user.userid}`, 'g');
-      let refId = 0;
       function styledAuthor() {
-        refId += 1;
-        if (refData[user.userid]) refData[user.userid] = [...refData[user.userid], `${user.userid}-${refId}`];
-        else refData[user.userid] = [`${user.userid}-${refId}`];
+        if (refData[user.userid]) refData[user.userid] = [...refData[user.userid], this.state.ref];
+        else refData[user.userid] = [this.state.ref];
 
-        return `<span title="${user.name}" ref="${user.userid}-${refId}" class="editor-token token-editor-${user.userid} ${colorClass}`;
+        return `<span title="${user.name}" ref="${this.state.ref}" class="editor-token token-editor-${user.userid} ${colorClass}`;
       }
       html = html.replace(authorSpanMatcher, styledAuthor);
       if (prevHtml !== html) user.activeRevision = true;
