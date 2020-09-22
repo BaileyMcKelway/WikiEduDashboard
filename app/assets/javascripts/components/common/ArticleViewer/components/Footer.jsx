@@ -6,10 +6,11 @@ import ArticleViewerLegend from '@components/common/article_viewer_legend.jsx';
 
 export const Footer = ({
   article, colors, failureMessage, showArticleFinder, highlightedHtml, isWhocolorLang,
-  whocolorFailed, users
+  whocolorFailed, users, refData
 }) => {
   // Determine the Article Viewer Legend status based on what information
   // has returned from various API calls.
+  console.log(refData);
   let articleViewerLegend;
   if (!showArticleFinder) {
     let legendStatus;
@@ -28,6 +29,7 @@ export const Footer = ({
         colors={colors}
         status={legendStatus}
         failureMessage={failureMessage}
+        refData={refData}
       />
     );
   }

@@ -38,7 +38,8 @@ export class ArticleViewer extends React.Component {
       showArticle: false,
       showBadArticleAlert: false,
       whocolorFailed: false,
-      users: []
+      users: [],
+      refData: null,
     };
 
     this.showArticle = this.showArticle.bind(this);
@@ -150,6 +151,8 @@ export class ArticleViewer extends React.Component {
   // The matching and replacing of spans is tightly coupled to the span format
   // provided by the whoColor API: https://github.com/wikiwho/WhoColor
   highlightAuthors() {
+    // CREATE REF OBJECT
+    const refData = {};
     let html = this.state.whocolorHtml;
     if (!html) { return; }
     let i = 0;
@@ -161,13 +164,24 @@ export class ArticleViewer extends React.Component {
       // username and color class.
       const prevHtml = html;
       const colorClass = colors[i];
-      const styledAuthorSpan = `<span title="${user.name}" class="editor-token token-editor-${user.userid} ${colorClass}`;
+      // ADD REF USERID + DYNAMIC VARIABLE FOR EACH HIGHLIGHT
+      // WRITE FUNCTION FOR HIGHLIGHTING OTHER THEN REPLACE, SHOULD HAVE RUNTIME O(n)
+      // const styledAuthorSpan = `<span title="${user.name}" class="editor-token token-editor-${user.userid} ${colorClass}`;
       const authorSpanMatcher = new RegExp(`<span class="editor-token token-editor-${user.userid}`, 'g');
-      html = html.replace(authorSpanMatcher, styledAuthorSpan);
+      let refId = 0;
+      function styledAuthor() {
+        refId += 1;
+        if (refData[user.userid]) refData[user.userid] = [...refData[user.userid], `${user.userid}-${refId}`];
+        else refData[user.userid] = [`${user.userid}-${refId}`];
+
+        return `<span title="${user.name}" ref="${user.userid}-${refId}" class="editor-token token-editor-${user.userid} ${colorClass}`;
+      }
+      html = html.replace(authorSpanMatcher, styledAuthor);
       if (prevHtml !== html) user.activeRevision = true;
       i += 1;
     });
-    this.setState({ highlightedHtml: html });
+    // SET STATE FOR REF OBJECT
+    this.setState({ highlightedHtml: html, refData: refData });
   }
 
   fetchParsedArticle() {
@@ -188,7 +202,7 @@ export class ArticleViewer extends React.Component {
       });
   }
 
-  fetchWhocolorHtml() {
+  async fetchWhocolorHtml() {
     const builder = new URLBuilder({ article: this.props.article });
     const api = new ArticleViewerAPI({ builder });
     api.fetchWhocolorHtml()
@@ -298,6 +312,7 @@ export class ArticleViewer extends React.Component {
             }
           </div>
           <Footer
+            // PASS DOWN REF OBJECT
             article={article}
             colors={colors}
             failureMessage={failureMessage}
@@ -306,6 +321,7 @@ export class ArticleViewer extends React.Component {
             showArticleFinder={showArticleFinder}
             whocolorFailed={whocolorFailed}
             users={users}
+            refData={this.state.refData}
           />
         </div>
       </div>
