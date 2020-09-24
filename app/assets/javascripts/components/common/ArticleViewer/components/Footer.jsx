@@ -10,7 +10,6 @@ export const Footer = ({
 }) => {
   // Determine the Article Viewer Legend status based on what information
   // has returned from various API calls.
-  console.log(refData);
   let articleViewerLegend;
   if (!showArticleFinder) {
     let legendStatus;

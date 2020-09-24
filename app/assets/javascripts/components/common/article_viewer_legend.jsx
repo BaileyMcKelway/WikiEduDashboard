@@ -7,10 +7,10 @@ import UserUtils from '../../utils/user_utils.js';
 const ArticleViewerLegend = ({ article, users, colors, status, allUsers, failureMessage, refData }) => {
   let userLinks;
   let j = 0;
+  const scrollWindow = document.getElementsByClassName('article-scrollbox');
   function scroll(id) {
-    console.log(refData);
     // refData[id][j].current.scrollIntoView();
-    // window.scrollTo(0, refData[id][j]);
+    scrollWindow[0].scrollTo(0, refData[id][j]);
     j += 1;
   }
   if (users) {
