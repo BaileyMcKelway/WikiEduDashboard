@@ -9,7 +9,7 @@ require_dependency "#{Rails.root}/app/workers/update_course_worker"
 # Controller for Assignments
 class AssignmentsController < ApplicationController
   respond_to :json
-  before_action :set_course, except: [:update, :update_status]
+  before_action :set_course, except: [:claim, :update_status]
 
   def destroy
     set_assignment { return }
@@ -45,19 +45,23 @@ class AssignmentsController < ApplicationController
     redirect_to "/courses/#{@course.slug}/assignments.json"
   end
 
-  def update
+  # Select an Available Article as a new Assignment for a user
+  def claim
+    @claimed_assignment = Assignment.find(params[:assignment_id])
+    @course = @claimed_assignment.course
     check_permissions(assignment_params[:user_id].to_i)
-    @assignment = Assignment.find(assignment_params[:id])
+    check_participation # prevents a user from a different course claiming an assignment
 
-    if @assignment.user_id
+    if @claimed_assignment.user_id
       render json: { message: 'This assignment has been claimed already. Please refresh.' },
              status: :conflict
-    elsif @assignment.update(assignment_params)
-      render partial: 'updated_assignment', locals: { assignment: @assignment }
     else
-      render json: { errors: @assignment.errors, message: 'unable to update assignment' },
-             status: :internal_server_error
+      claim_assignment # sets @assignment
+      render partial: 'updated_assignment', locals: { assignment: @assignment }
     end
+  rescue AssignmentManager::DuplicateAssignmentError => e
+    render json: { errors: e, message: I18n.t('assignments.already_exists') },
+                   status: :conflict
   end
 
   def update_status
@@ -136,6 +140,11 @@ class AssignmentsController < ApplicationController
                                         role: assignment_params[:role]).create_assignment
   end
 
+  def claim_assignment
+    @assignment = AssignmentManager.new(user_id: assignment_params[:user_id],
+                                        course: @course).claim_assignment(@claimed_assignment)
+  end
+
   def create_random_peer_reviews
     AssignmentManager.new(course: @course).create_random_peer_reviews
   end
@@ -148,6 +157,11 @@ class AssignmentsController < ApplicationController
     return if current_user.can_edit?(@course)
     return if user_id.present? && current_user.id == user_id
     raise NotPermittedError
+  end
+
+  def check_participation
+    return if current_user.nonvisitor?(@course)
+    raise ParticipatingUserError
   end
 
   def assignment_params

@@ -4,8 +4,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import CourseUtils from '../../utils/course_utils.js';
-import { deleteAssignment, updateAssignment } from '../../actions/assignment_actions.js';
-import { addNotification } from '../../actions/notification_actions.js';
+import { deleteAssignment, claimAssignment } from '../../actions/assignment_actions.js';
 
 export const AvailableArticle = createReactClass({
   displayName: 'AvailableArticle',
@@ -14,9 +13,9 @@ export const AvailableArticle = createReactClass({
     assignment: PropTypes.object,
     current_user: PropTypes.object,
     course: PropTypes.object,
-    addNotification: PropTypes.func,
     deleteAssignment: PropTypes.func,
-    updateAssignment: PropTypes.func
+    claimAssignment: PropTypes.func,
+    selectable: PropTypes.bool
   },
 
   onSelectHandler() {
@@ -27,13 +26,13 @@ export const AvailableArticle = createReactClass({
     };
 
     const title = this.props.assignment.article_title;
-    this.props.addNotification({
+    const successNotification = {
       message: I18n.t('assignments.article', { title }),
       closable: true,
       type: 'success'
-    });
+    };
 
-    return this.props.updateAssignment(assignment);
+    return this.props.claimAssignment(assignment, successNotification);
   },
 
   onRemoveHandler(e) {
@@ -62,7 +61,7 @@ export const AvailableArticle = createReactClass({
 
     let actionSelect;
     let actionRemove;
-    if (this.props.current_user.isStudent) {
+    if (this.props.current_user.isStudent && this.props.selectable) {
       actionSelect = (
         <button className="button dark" onClick={this.onSelectHandler}>{I18n.t('assignments.select')}</button>
       );
@@ -100,9 +99,8 @@ export const AvailableArticle = createReactClass({
 );
 
 const mapDispatchToProps = {
-  addNotification,
   deleteAssignment,
-  updateAssignment
+  claimAssignment
 };
 
 export default connect(null, mapDispatchToProps)(AvailableArticle);

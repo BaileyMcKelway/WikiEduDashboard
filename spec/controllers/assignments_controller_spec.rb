@@ -330,32 +330,64 @@ describe AssignmentsController, type: :request do
     end
   end
 
-  describe 'PATCH #update' do
+  describe 'PUT #claim' do
     let(:assignment) { create(:assignment, course_id: course.id, role: 0) }
     let(:request_params) do
       { course_id: course.id, id: assignment.id, user_id: user.id, format: :json }
     end
 
-    context 'when the update succeeds' do
-      it 'renders a 200' do
-        put "/assignments/#{assignment.id}", params: request_params
+    context 'when the claim succeeds' do
+      before { create(:courses_user, course: course, user: user) }
+
+      it 'renders a 200 and the assignment belongs to the user' do
+        put "/assignments/#{assignment.id}/claim", params: request_params
         expect(response.status).to eq(200)
+        expect(assignment.reload.user_id).to eq(user.id)
       end
     end
 
-    context 'when the article is already assigned to a user' do
+    context 'when the assignment was already claimed by another user' do
+      before { create(:courses_user, course: course, user: user) }
+
       it 'renders a 409' do
         assignment.update(user_id: 1)
-        put "/assignments/#{assignment.id}", params: request_params
+        put "/assignments/#{assignment.id}/claim", params: request_params
         expect(response.status).to eq(409)
       end
     end
 
-    context 'when the update fails' do
-      it 'renders a 500' do
-        allow_any_instance_of(Assignment).to receive(:save).and_return(false)
-        put "/assignments/#{assignment.id}", params: request_params
-        expect(response.status).to eq(500)
+    context 'when the same article is already assigned to the user' do
+      before do
+        create(:courses_user, course: course, user: user)
+        create(:assignment, article_title: assignment.article_title, user: user,
+                            course: course, role: assignment.role)
+        expect_any_instance_of(Course).to receive(:retain_available_articles?).and_return(true)
+      end
+
+      it 'renders a 409' do
+        put "/assignments/#{assignment.id}/claim", params: request_params
+        expect(response.status).to eq(409)
+      end
+    end
+
+    context 'when the user is not in the course' do
+      it 'renders a 401' do
+        put "/assignments/#{assignment.id}/claim", params: request_params
+        expect(response.status).to eq(401)
+      end
+    end
+
+    context 'when the course is set to retain available articles' do
+      before do
+        create(:courses_user, course: course, user: user)
+        allow_any_instance_of(Course).to receive(:retain_available_articles?).and_return(true)
+      end
+
+      it 'creates a new assignment and keeps the available one' do
+        put "/assignments/#{assignment.id}/claim", params: request_params
+        expect(response.status).to eq(200)
+        expect(assignment.reload.user_id).to be_nil
+        expect(user.assignments.first.article_title).to eq(assignment.article_title)
       end
     end
   end
