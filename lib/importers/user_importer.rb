@@ -10,6 +10,7 @@ class UserImporter
     user ||= User.find_by(global_id: auth.uid)
 
     return new_from_omniauth(auth) if user.nil?
+
     update_user_from_auth(user, auth)
     user
   end
@@ -75,11 +76,27 @@ class UserImporter
   # Helper methods #
   ##################
 
-  def self.update_user_from_auth(user, auth)
+  def self.update_user_from_auth(user, auth) 
+    oldUserName = user.username
+    newUserName = auth.info.name
+
     user.update(global_id: auth.uid,
                 username: auth.info.name,
                 wiki_token: auth.credentials.token,
                 wiki_secret: auth.credentials.secret)
+
+    if oldUserName != newUserName
+      assignments = Assignment.where(user_id: user.id)
+      
+      assignments.each do |assignment|
+        sandboxReassign = assignment.sandbox_url.split('/')
+        sandboxReassign[4] = "User:" + auth.info.name
+        sandboxFinal = sandboxReassign.join('/')
+        assignment.update(sandbox_url: sandboxFinal)
+        puts("sandboxFinal", sandboxFinal)
+      end
+    end
+
   end
 
   def self.user_account_exists?(username, home_wiki)

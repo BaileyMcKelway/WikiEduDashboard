@@ -92,6 +92,7 @@ class User < ApplicationRecord
     joins(:courses_users).where(courses_users: { role: roles[role] })
   }
 
+
   ####################
   # Class method(s)  #
   ####################
@@ -217,4 +218,5 @@ class User < ApplicationRecord
   def ensure_valid_email
     self.email = nil if ValidatesEmailFormatOf::validate_email_format(email)
   end
+
 end
